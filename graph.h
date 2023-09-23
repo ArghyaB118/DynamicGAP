@@ -3,9 +3,9 @@
 #include <vector>
 #include <queue>
 
-#include "pvector.h"
-#include "sliding_queue.h"
-#include "bitmap.h"
+#include "src-gap/pvector.h"
+#include "src-gap/sliding_queue.h"
+#include "src-gap/bitmap.h"
 
 #include "util.h"
 #include "cpp-btree-1.0.1/btree_set.h"
