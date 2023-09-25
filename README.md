@@ -1,6 +1,7 @@
 # Dynamic GAP
 Question: What is GAP?
 GAP is a static graph processing benchmark.
+
 ## GAP Benchmark Suite included.
 We merged the GAP benchmark BFS implementation.
 In order to use the BFS from GAp, we used the following header files from GAP implementations:
@@ -28,3 +29,9 @@ The runtime matches between Dynamic GAP benchmark and the native GAP benchmark. 
 1. GAP's `src/` is clones in `src-gap/`.
 2. Build `bfs.cc` by running `g++ -std=c++11 -O3 -Wall -fopenmp src-gap/bfs.cc`. Skip the option `-fopenmp` if not suppported on mac.
 3. Run `./a.out -f graphs/slashdot.el`
+
+## Including AlgoraCore
+[Project page](https://libalgora.gitlab.io/#algora)
+[AlgoraCore](https://gitlab.com/libAlgora/AlgoraCore) and [GitHub](https://github.com/libAlgora/AlgoraCore/tree/master)
+[AlgoraDyn](https://gitlab.com/libAlgora/AlgoraDyn)
+

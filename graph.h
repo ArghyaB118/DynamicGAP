@@ -140,8 +140,6 @@ long int Graph::TDStep(pvector<long int> &parent, SlidingQueue<long int> &q) {
 pvector<long int> Graph::bfs_gap (long int source, 
 	int alpha = 15, 
 	int beta = 18) {
-	vector<double> timestamps1 = {};
-	timestamps1.push_back(get_wall_time());
 	pvector<long int> parent(this->N);
 	#pragma omp parallel for
 	for (long int i = 0; i < this->N; i++) {
@@ -149,6 +147,8 @@ pvector<long int> Graph::bfs_gap (long int source,
 			? -this->Neighbors[i].size() 
 			: -1;
 	}
+	vector<double> timestamps1 = {};
+	timestamps1.push_back(get_wall_time());
 	parent[source] = source;
 	SlidingQueue<long int> q(this->N);
 	q.push_back(source);
