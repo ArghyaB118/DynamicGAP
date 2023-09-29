@@ -17,6 +17,7 @@
 #include "util.h"
 #include "writer.h"
 
+#include "../util.h"
 
 /*
 GAP Benchmark Suite
@@ -104,9 +105,14 @@ void BenchmarkKernel(const CLApp &cli, const GraphT_ &g,
   double total_seconds = 0;
   Timer trial_timer;
   for (int iter=0; iter < cli.num_trials(); iter++) {
+    std::vector<double> timestamps = {};
+    timestamps.push_back(get_wall_time());
     trial_timer.Start();
     auto result = kernel(g);
     trial_timer.Stop();
+    timestamps.push_back(get_wall_time());
+    std::cout << "Real wall time for bfs in GAP: "
+     << timestamps.back() - timestamps.end()[-2] << std::endl;
     PrintTime("Trial Time", trial_timer.Seconds());
     total_seconds += trial_timer.Seconds();
     if (cli.do_analysis() && (iter == (cli.num_trials()-1)))

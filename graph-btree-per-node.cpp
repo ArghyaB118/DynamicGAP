@@ -8,12 +8,17 @@
 #include "graph.h"
 using namespace std;
 
-long int countNodes (string filename) {
+long int countNodes (string filename,
+	long int num_edges_init_round, 
+	long int num_edges_each_round,
+	long int num_rounds) {
 	ifstream myfile (filename);
 	string myline;
 	long int max_num = 0;
+	long int num_lines = num_edges_init_round + 
+	 num_edges_each_round * num_rounds;
 	if (myfile.is_open()) {	
-		while (myfile) {
+		while (myfile && num_lines > 0) {
 			getline(myfile, myline);
 			vector<string> tmp;
 			tmp.push_back("");
@@ -28,6 +33,7 @@ long int countNodes (string filename) {
 			if (tmp[1] != "" && stol(tmp[1]) > max_num)
 				max_num = stol(tmp[1]);
 			myline.clear();
+			num_lines--;
 		}
 	}
 	myfile.close();
@@ -67,9 +73,13 @@ void run_benchmark (long int source,
 	long int num_rounds) {
 	// read the file name from command line input.
 	ifstream myfile (filename);
+	long int num_nodes = countNodes(filename, 
+		num_edges_init_round, 
+		num_edges_each_round, 
+		num_rounds);
 	cout << "Number of nodes: " 
-	 << countNodes(filename) << endl;
-	Graph g(countNodes(filename));
+	 << num_nodes << endl;
+	Graph g(num_nodes);
 	vector<double> timestamps = {};
 	timestamps.push_back(get_wall_time());
 	readEdges(myfile, g, num_edges_init_round);
@@ -160,7 +170,8 @@ int main (int argc, char *argv[]) {
 	else if (experiment_type == "-random") {
 		for (long int i = 0; i < experiment_setup; i++) {
 			long int random_source = 
-				rand() % countNodes(filename);
+				rand() % countNodes(filename, num_edges_init_round, 
+							num_edges_each_round, num_rounds);
 			run_benchmark(random_source,
 				filename, 
 				num_edges_init_round, 

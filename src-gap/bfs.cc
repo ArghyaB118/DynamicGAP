@@ -14,7 +14,6 @@
 #include "sliding_queue.h"
 #include "timer.h"
 
-
 /*
 GAP Benchmark Suite
 Kernel: Breadth-First Search (BFS)
@@ -240,13 +239,17 @@ bool BFSVerifier(const Graph &g, NodeID source,
   return true;
 }
 
-
 int main(int argc, char* argv[]) {
+  std::vector<double> timestamps = {};
+  timestamps.push_back(get_wall_time());
   CLApp cli(argc, argv, "breadth-first search");
   if (!cli.ParseArgs())
     return -1;
   Builder b(cli);
   Graph g = b.MakeGraph();
+  timestamps.push_back(get_wall_time());
+  std::cout << "Wall time to read the graph for bfs in GAP: "
+   << timestamps.back() - timestamps.end()[-2] << std::endl;
   SourcePicker<Graph> sp(g, cli.start_vertex());
   auto BFSBound = [&sp] (const Graph &g) { return DOBFS(g, sp.PickNext()); };
   SourcePicker<Graph> vsp(g, cli.start_vertex());
@@ -254,5 +257,8 @@ int main(int argc, char* argv[]) {
     return BFSVerifier(g, vsp.PickNext(), parent);
   };
   BenchmarkKernel(cli, g, BFSBound, PrintBFSStats, VerifierBound);
+  timestamps.push_back(get_wall_time());
+  std::cout << "Wall time for bfs in GAP: "
+   << timestamps.back() - timestamps.end()[-2] << std::endl;
   return 0;
 }
