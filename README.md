@@ -25,7 +25,7 @@ g++ -o adj_to_el adj_to_el.cc -std=c++11 -O3
 ./adj_to_el INPUT_FILE OUTPUT_FILE
 
 Run on slashdot:
-1. Build: `g++ -std=c++11 graph-btree-per-node.cpp`.
+1. Build: `g++ -std=c++11 -fopenmp graph-btree-per-node.cpp`.
 2. Run: `./a.out -deterministic 15462 graphs/slashdot.el 938360 0 0`.
 
 ## Sanity check for GAP benchmark
@@ -35,6 +35,7 @@ The runtime matches between Dynamic GAP benchmark and the native GAP benchmark. 
 3. Run `./a.out -f graphs/slashdot.el`
 
 P.S. Build `g++ -std=c++11 test-sanity-GAP.cpp` and run `./a.out >> tmp`.
+P.P.S. Run `make gap` to build all files in `src-gap`. Please remember to do `make clean` before pushing on git.
 
 ## Including AlgoraCore
 [Project page](https://libalgora.gitlab.io/#algora) \
