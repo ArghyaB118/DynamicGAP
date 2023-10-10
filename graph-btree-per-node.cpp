@@ -6,43 +6,15 @@
 #include <cstdlib>
 
 #include "graph.h"
+#include "sanity-check.h"
+
 using namespace std;
 
-long int countNodes (string filename,
-	long int num_edges_init_round, 
-	long int num_edges_each_round,
-	long int num_rounds) {
-	ifstream myfile (filename);
-	string myline;
-	long int max_num = 0;
-	long int num_lines = num_edges_init_round + 
-	 num_edges_each_round * num_rounds;
-	if (myfile.is_open()) {	
-		while (myfile && num_lines > 0) {
-			getline(myfile, myline);
-			vector<string> tmp;
-			tmp.push_back("");
-			for (char &c : myline) {
-				if (c != ' ')
-					tmp.back().push_back(c);
-				else
-					tmp.push_back("");
-			}
-			if (tmp[0] != "" && stol(tmp[0]) > max_num)
-				max_num = stol(tmp[0]);
-			if (tmp[1] != "" && stol(tmp[1]) > max_num)
-				max_num = stol(tmp[1]);
-			myline.clear();
-			num_lines--;
-		}
-	}
-	myfile.close();
-	return max_num + 1;
-}
+bool verify = false;
 
-void readEdges (ifstream& myfile, 
-	Graph& g, // edgeList& edge_list, 
+vector<edge> readEdges (ifstream& myfile, 
 	long int num_lines) {
+	vector<edge> edge_list = {};
 	string myline;
 	if (myfile.is_open()) {	
 		while (myfile && num_lines > 0) {
@@ -57,12 +29,29 @@ void readEdges (ifstream& myfile,
 			}
 			if (tmp[0] != "" && tmp[1] != "") {
 				edge tmp_edge = {stol(tmp[0]), stol(tmp[1])};
-				g.addEdge(tmp_edge);
+				edge_list.push_back(tmp_edge);
 			}
 			myline.clear();
 			num_lines--;
 		}
 	}
+	return edge_list;
+}
+
+void updateEdges (vector<edge>& edge_list, 
+	Graph& g, // edgeList& edge_list, 
+	long int start_line,
+	long int num_lines) {
+	double timer_start = 0, timer_end = 0;
+	double update_time = 0;
+	#pragma omp for
+	for (auto i = 0; i < num_lines; i++) {
+		timer_start = get_wall_time();
+		g.addEdge(edge_list[start_line + i]);
+		timer_end = get_wall_time();
+		update_time += (timer_end - timer_start);
+	}
+	cout << "Wall time to update edges: " << update_time << endl;
 	return;
 }
 
@@ -79,63 +68,57 @@ void run_benchmark (long int source,
 		num_rounds);
 	cout << "Number of nodes: " 
 	 << num_nodes << endl;
+	vector<edge> edge_list = 
+	 readEdges(myfile, num_edges_init_round 
+	 	+ num_edges_each_round * num_rounds);
 	Graph g(num_nodes);
 	vector<double> timestamps = {};
 	timestamps.push_back(get_wall_time());
-	readEdges(myfile, g, num_edges_init_round);
+	updateEdges(edge_list, g, 0, num_edges_init_round);
 	timestamps.push_back(get_wall_time());
 	cout << "Wall time to read edges in the initial round: "
 	 << timestamps.back() - timestamps.end()[-2] << endl;
-	g.bfs(source);
-	timestamps.push_back(get_wall_time());
-	cout << "Wall time for bfs after the initial round: "
-	 << timestamps.back() - timestamps.end()[-2] << endl;
+	if (verify) {
+		g.bfs(source);
+		timestamps.push_back(get_wall_time());
+		cout << "Wall time for bfs after the initial round: "
+		 << timestamps.back() - timestamps.end()[-2] << endl;
+	}
 	pvector<long int> parent = g.bfs_gap(source); 
 	timestamps.push_back(get_wall_time());
 	cout << "Wall time for bfs_gap after the initial round: "
 	 << timestamps.back() - timestamps.end()[-2] << endl;
-	cout << "BFSVerifier output: " 
-	 << boolalpha << g.BFSVerifier(source, parent) << endl;
+	if (verify) {
+		cout << "BFSVerifier output: " 
+		 << boolalpha << g.BFSVerifier(source, parent) << endl;
+	}
 	for (long int i = 0; i < num_rounds; i++) {
 		timestamps.push_back(get_wall_time());
-		readEdges(myfile, g, num_edges_each_round);
+		updateEdges(edge_list, g, 
+			num_edges_init_round + i * num_edges_each_round, 
+			num_edges_each_round);
 		timestamps.push_back(get_wall_time());
 		cout << "Wall time to read edges in the " 
 		 << i + 1 << "-th round: "
 	 	 << timestamps.back() - timestamps.end()[-2] << endl;
-		g.bfs(source);
-		timestamps.push_back(get_wall_time());
-		cout << "Wall time for bfs after " << i + 1
-		 << "-th round: "
-	 	 << timestamps.back() - timestamps.end()[-2] << endl;
+		if (verify) {
+			g.bfs(source);
+			timestamps.push_back(get_wall_time());
+			cout << "Wall time for bfs after " << i + 1
+			 << "-th round: "
+		 	 << timestamps.back() - timestamps.end()[-2] << endl;
+		}
 	 	parent = g.bfs_gap(source);
 	 	timestamps.push_back(get_wall_time());
 		cout << "Wall time for bfs_gap after " << i + 1
 		 << "-th round: "
 	 	 << timestamps.back() - timestamps.end()[-2] << endl;
-	 	cout << "BFSVerifier output: " 
-	 	 << boolalpha << g.BFSVerifier(source, parent) << endl;
+	 	if (verify) {
+		 	cout << "BFSVerifier output: " 
+		 	 << boolalpha << g.BFSVerifier(source, parent) << endl;
+	 	}
 	}
 	myfile.close();
-}
-
-bool sanity_check (string filename, 
-	long int num_edges_init_round, 
-	long int num_edges_each_round,
-	long int num_rounds) {
-	long int num_lines = 0;
-	ifstream myfile (filename);
-	if (myfile.is_open()) {	
-		while (myfile) {
-			string tmp;
-			getline(myfile, tmp);
-			num_lines++;
-		}
-	}
-	if (num_lines >= num_edges_init_round + 
-		num_edges_each_round * num_rounds)
-		return true;
-	return false;
 }
 
 int main (int argc, char *argv[]) {

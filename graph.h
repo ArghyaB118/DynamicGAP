@@ -148,17 +148,17 @@ pvector<long int> Graph::bfs_gap (long int source,
 			: -1;
 	}
 	vector<double> timestamps1 = {};
-	timestamps1.push_back(get_wall_time());
 	parent[source] = source;
 	SlidingQueue<long int> q(this->N);
 	q.push_back(source);
 	q.slide_window();
 	Bitmap curr(this->N);
 	curr.reset();
-    Bitmap front(this->N);
+  Bitmap front(this->N);
 	front.reset();
 	long int edges_to_check = this->E;
 	long int scout_count = this->Neighbors[source].size();
+	timestamps1.push_back(get_wall_time());
 	while (!q.empty()) {
 		if (scout_count > edges_to_check / alpha) {
 			long int awake_count, old_awake_count;
@@ -180,7 +180,7 @@ pvector<long int> Graph::bfs_gap (long int source,
 		}
 	}
 	timestamps1.push_back(get_wall_time());
-	cout << "Real wall time for bfs_gap after the initial round: "
+	cout << "Real wall time for bfs_gap: "
 	 << timestamps1.back() - timestamps1.end()[-2] << endl;
 	#pragma omp parallel for
 	for (long int n = 0; n < this->N; n++)

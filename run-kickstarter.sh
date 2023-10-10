@@ -1,12 +1,36 @@
 #!/bin/bash
+now=$(date)
+echo $now
 
-#sed -n '1,937300p' ~/DynamicGAP/graphs/slashdot.el > tmp1.el
-sed -n '1,10000000p' ~/DynamicGAP/graphs/er_graph.el > tmp1.el
-./graphbolt/tools/converters/SNAPtoAdjConverter tmp1.el tmp1.adj
-sed -n '10000001,100000000p' ~/DynamicGAP/graphs/er_graph.el > tmp2.txt
-sed -e 's/^/a /' tmp2.txt > tmp3.txt
+while getopts s:n:e:p: flag
+do
+	case "${flag}" in
+        s) source=${OPTARG};;
+        n) numberOfUpdateBatches=${OPTARG};;
+        e) nEdges=${OPTARG};;
+		p) streamPath=${OPTARG};;
+    esac
+done
 
-#./graphbolt/apps/BFS -source 15462 -numberOfUpdateBatches 10 -nEdges 100 -streamPath tmp3.txt -outputFile bfs_output tmp1.adj
-./graphbolt/apps/BFS -source 2001011 -numberOfUpdateBatches 2 -nEdges 10000000 -streamPath tmp3.txt -outputFile bfs_output tmp1.adj
+echo $streamPath
 
-rm tmp1.el tmp1.adj tmp2.txt tmp3.txt
+#sed -n '1,185083p' $streamPath > tmp.el
+#./graphbolt/tools/converters/SNAPtoAdjConverter tmp.el tmp.adj
+#sed -n '5084,117370166p' $streamPath > tmp.txt
+#sed -e 's/^/a /' tmp.txt > tmp2.txt
+#./graphbolt/apps/BFS -source $source -numberOfUpdateBatches 1 -nEdges 117185083 -streamPath tmp2.txt -outputFile bfs_output tmp.adj
+
+#sed -n '1,117370166p' $streamPath > tmp.el
+#./graphbolt/tools/converters/SNAPtoAdjConverter tmp.el tmp.adj
+#sed -n '117370167,234370166p' $streamPath > tmp.txt
+#sed -e 's/^/a /' tmp.txt > tmp2.txt
+#./graphbolt/apps/BFS -source $source -numberOfUpdateBatches $numberOfUpdateBatches -nEdges $nEdges -streamPath tmp2.txt -outputFile bfs_output tmp.adj
+
+head -n "$(($(wc -l<$streamPath)/2))" $streamPath > tmp.el
+./graphbolt/tools/converters/SNAPtoAdjConverter tmp.el tmp.adj
+tail -n "$(($(wc -l<$streamPath)/2))" $streamPath > tmp.txt
+sed -e 's/^/a /' tmp.txt > tmp2.txt
+vmtouch -vt tmp.adj tmp2.txt
+./graphbolt/apps/BFS -source $source -numberOfUpdateBatches $numberOfUpdateBatches -nEdges $nEdges -streamPath tmp2.txt -outputFile bfs_output tmp.adj
+
+rm tmp.el tmp.adj tmp.txt tmp2.txt bfs_output*

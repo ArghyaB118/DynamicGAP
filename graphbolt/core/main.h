@@ -31,6 +31,8 @@
 #include "graph/IO.h"
 #include "graph/graph.h"
 #include "graph/vertex.h"
+
+#include "../../util.h"
 using namespace std;
 
 template <class vertex> void compute(graph<vertex> &, commandLine);
@@ -55,14 +57,22 @@ int parallel_main(int argc, char *argv[]) {
         readGraph<symmetricVertex>(iFile, symmetric, simpleFlag, debugFlag);
     G.setSymmetric(true);
     cout << "Symmetric graph created" << endl;
+    double timer_start = get_wall_time();
     compute(G, P);
+    double timer_end = get_wall_time();
+    cout << "Total time for all rounds: " 
+     << (timer_end - timer_start) << endl;
     G.del();
   } else {
     // asymmetric graph
     graph<asymmetricVertex> G =
         readGraph<asymmetricVertex>(iFile, symmetric, simpleFlag, debugFlag);
     cout << "Asymmetric graph created" << endl;
+    double timer_start = get_wall_time();
     compute(G, P);
+    double timer_end = get_wall_time();
+    cout << "Total time for all rounds: " 
+     << (timer_end - timer_start) << endl;
     G.del();
   }
 }
