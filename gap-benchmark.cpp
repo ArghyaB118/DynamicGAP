@@ -5,16 +5,16 @@
 #include <utility>
 #include <cstdlib>
 
-#include "graph.h"
+#include "graph-tlx.h"
 #include "sanity-check.h"
 
 using namespace std;
 
 bool verify = false;
 
-vector<edge> readEdges (ifstream& myfile, 
+void readEdges (ifstream& myfile,
+	vector<edge>& edge_list,
 	long int num_lines) {
-	vector<edge> edge_list = {};
 	string myline;
 	if (myfile.is_open()) {	
 		while (myfile && num_lines > 0) {
@@ -35,11 +35,10 @@ vector<edge> readEdges (ifstream& myfile,
 			num_lines--;
 		}
 	}
-	return edge_list;
 }
 
 void updateEdges (vector<edge>& edge_list, 
-	Graph& g, // edgeList& edge_list, 
+	Graph& g,
 	long int start_line,
 	long int num_lines) {
 	double timer_start = 0, timer_end = 0;
@@ -68,8 +67,10 @@ void run_benchmark (long int source,
 		num_rounds);
 	cout << "Number of nodes: " 
 	 << num_nodes << endl;
-	vector<edge> edge_list = 
-	 readEdges(myfile, num_edges_init_round 
+	vector<edge> edge_list = {};
+	edge_list.reserve(num_edges_init_round 
+		+ num_edges_each_round * num_rounds);
+	readEdges(myfile, edge_list, num_edges_init_round 
 	 	+ num_edges_each_round * num_rounds);
 	Graph g(num_nodes);
 	vector<double> timestamps = {};

@@ -8,8 +8,8 @@ In order to use the BFS from GAP, we used the following header files from GAP im
 1. sliding_queue
 2. bitmap
 3. pvector
-4. platform_atomics
-For details, please visit https://github.com/sbeamer/gapbs/tree/master
+4. platform_atomics.\
+For details, please visit [GAP Benchmark Suite codebase](https://github.com/sbeamer/gapbs/tree/master). \
 Reference: Scott Beamer, Krste Asanović, and David Patterson. 
 "Direction-Optimizing Breadth-First Search." 
 International Conference on High Performance Computing, Networking, Storage and Analysis (SC), Salt Lake City, Utah, November 2012.
@@ -20,12 +20,18 @@ Number of edges will be limited to ~2B if we take 'int' to contain edge_list.
 Hence, we used 'long int'.
 Assumption: The nodes are marked from 0 onwards.
 
+## Graph with cpp, absl, and tlx
+[cpp btree](https://code.google.com/archive/p/cpp-btree/downloads) is taken from google archive.
+To set up absl, follow the [cmake guide](https://abseil.io/docs/cpp/quickstart-cmake#creating-your-cmakeliststxt-file). On the DynamicGAP folder, clone Source and absl-cpp source. asbl-cpp requires C++14. for this switch to C++-9 using `sudo update-alternatives --config g++`. absl::container is [removed from the libraries](https://github.com/abseil/abseil-cpp/issues/932). Hence compile using -I.
+Hence, while using absl, compile using `g++ -std=c++14 -O3 -fopenmp gap-benchmark.cpp -Iabseil-cpp`. Run by `./a.out -deterministic 614483 graphs/com-orkut.ungraph.el 234370166 0 0 > tmp`. Also, make sure that `gap-benchmark.cpp` uses `graph-absl.h` as the header. \
+The related files to run [tlx](https://github.com/tlx/tlx) is already copied in the directory `DynamicGAP/tlx`. Use `graph-tlx.h` in `gap-benchmark.cpp`.
+
 ## Using graph converters from .adj to .el
-g++ -o adj_to_el adj_to_el.cc -std=c++11 -O3
-./adj_to_el INPUT_FILE OUTPUT_FILE
+Compile: `g++ -o adj_to_el adj_to_el.cc -std=c++11 -O3`
+Run: `./adj_to_el INPUT_FILE OUTPUT_FILE`
 
 Run on slashdot:
-1. Build: `g++ -std=c++11 -O3 -fopenmp graph-btree-per-node.cpp`.
+1. Build: `g++ -std=c++11 -O3 -fopenmp gap-benchmark.cpp`.
 2. Run: `./a.out -deterministic 15462 graphs/slashdot.el 938360 0 0 >> tmp`.
 
 ## Sanity check for GAP benchmark
@@ -77,6 +83,6 @@ Run `./run-kickstarter.sh -s 614483 -n 11718 -e 10000 -p graphs/com-orkut.ungrap
 In order to clean the cache before every experiment, one may have [debugged echo 3 `permission not allowed` error](https://unix.stackexchange.com/questions/109496/echo-3-proc-sys-vm-drop-caches-permission-denied-as-root):
 `sync; sudo sh -c "/usr/bin/echo 3 > /proc/sys/vm/drop_caches"`. Note that we are inetrested in the in-memory experiment. hence, we read the edge_list in a vector first. In fact, we use [vmtouch](https://hoytech.com/vmtouch/) to keep files in-memory.
 
-Reference: [stack overflow](https://stackoverflow.com/questions/67280779/cilk-h-no-such-file-or-directory), 
-[ask ubuntu] (https://askubuntu.com/questions/1235819/ubuntu-20-04-gcc-version-lower-than-gcc-7), and
+Reference: [stack overflow](https://stackoverflow.com/questions/67280779/cilk-h-no-such-file-or-directory), \
+[ask ubuntu](https://askubuntu.com/questions/1235819/ubuntu-20-04-gcc-version-lower-than-gcc-7), and \
 [stack overflow](https://stackoverflow.com/questions/480764/linux-error-while-loading-shared-libraries-cannot-open-shared-object-file-no-s).

@@ -8,15 +8,12 @@
 #include "src-gap/bitmap.h"
 
 #include "util.h"
-#include "tlx/btree_set.hpp"
+#include "absl/container/btree_set.h"
 
-#include <type_traits>
 using namespace std;
 
 typedef pair<long int, long int> edge;
-const bool useTlx = true;
-
-typedef tlx::btree_set<long int> neighbors;
+typedef absl::btree_set<long int> neighbors;
 
 class Graph {
 private:
@@ -29,9 +26,8 @@ public:
 		this->N = N; // number of nodes/vertices
 		this->E = 0;
 		for (long int i = 0; i < N; i++) {
-			neighbors n;
-      Neighbors.push_back(n);
-			Parents.push_back(n);
+			Neighbors.push_back({});
+			Parents.push_back({});
 		}
 	}
 	void addEdge (edge edge) {
