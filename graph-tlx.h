@@ -14,16 +14,14 @@
 using namespace std;
 
 typedef pair<long int, long int> edge;
-const bool useTlx = true;
-
 typedef tlx::btree_set<long int> neighbors;
 
 class Graph {
 private:
 	long int N; // number of nodes/vertices
 	long int E; // number of edges
-	vector<neighbors> Parents;
-	vector<neighbors> Neighbors;
+	vector<neighbors> Parents, Neighbors;
+	vector<vector<long int> > p, e;
 public:
 	Graph(int N) {
 		this->N = N; // number of nodes/vertices
@@ -32,6 +30,9 @@ public:
 			neighbors n;
       Neighbors.push_back(n);
 			Parents.push_back(n);
+			vector<long int> tmp = {};
+			this->p.push_back(tmp);
+			this->e.push_back(tmp);
 		}
 	}
 	void addEdge (edge edge) {
@@ -56,7 +57,80 @@ public:
 	long int BUStep(pvector<long int> &parent, Bitmap &front, Bitmap &next);
 	long int TDStep(pvector<long int> &parent, SlidingQueue<long int> &q);
 	bool BFSVerifier(long int source, const pvector<long int> &parent);
+	void buildGraph (vector<edge>& edge_list, vector<edge>& parents_list, long int start_line, long int num_lines);	
+	void mergeEdges (vector<edge>& edge_list, vector<edge>& parents_list, long int start_line, long int num_lines);	
 };
+
+void Graph::mergeEdges (vector<edge>& edge_list, 
+	vector<edge>& parents_list, 
+	long int start_line,
+	long int num_lines) {
+	vector<vector<long int> > tmp_p, tmp_e;
+	vector<long int> tmp = {};
+	for (long int i = 0; i < this->N; i++) {
+		tmp_p.push_back(tmp);
+		tmp_e.push_back(tmp);
+	}
+	for (long int i = start_line; i < num_lines; i++) {
+		this->p[parents_list[i].first].push_back(parents_list[i].second);
+		this->e[edge_list[i].first].push_back(edge_list[i].second);
+		tmp_p[parents_list[i].first].push_back(parents_list[i].second);
+		tmp_e[edge_list[i].first].push_back(edge_list[i].second);
+	}
+	#pragma omp parallel for
+	for (long int i = 0; i < this->N; i++) {
+		sort (this->p[i].begin(), this->p[i].end());
+		sort (this->e[i].begin(), this->e[i].end());
+	}
+
+	double timer_start = 0, timer_end = 0;
+	timer_start = get_wall_time();
+	#pragma omp parallel for
+	for (long int i = 0; i < this->N; i++) {
+		for (auto &j : tmp_e[i]) {
+			this->Neighbors[i].insert(j);
+		}
+		for (auto &j : tmp_p[i]) {
+			this->Parents[i].insert(j);
+		}
+	}
+	timer_end = get_wall_time();
+	cout << "Wall time to update/merge edges: " 
+		<< (timer_end - timer_start) << endl;
+	this->E = num_lines;
+}
+
+void Graph::buildGraph (vector<edge>& edge_list, 
+	vector<edge>& parents_list, 
+	long int start_line,
+	long int num_lines) {
+	this->E = 0;
+	#pragma omp parallel for
+	for (long int i = 0; i < this->N; i++) {
+		this->Neighbors[i].clear();
+		this->Parents[i].clear();
+	}
+	for (long int i = start_line; i < num_lines; i++) {
+		this->p[parents_list[i].first].push_back(parents_list[i].second);
+		this->e[edge_list[i].first].push_back(edge_list[i].second);
+	}
+	#pragma omp parallel for
+	for (long int i = 0; i < this->N; i++) {
+		sort (this->p[i].begin(), this->p[i].end());
+		sort (this->e[i].begin(), this->e[i].end());
+	}
+	double timer_start = 0, timer_end = 0;
+	timer_start = get_wall_time();
+	#pragma omp parallel for
+	for (long int i = 0; i < this->N; i++) {
+		this->Neighbors[i].bulk_load(this->e[i].begin(), this->e[i].end());
+		this->Parents[i].bulk_load(this->p[i].begin(), this->p[i].end());
+	}
+	timer_end = get_wall_time();
+	cout << "Wall time to update edges: " 
+		<< (timer_end - timer_start) << endl;
+	this->E = num_lines;
+}
 
 void Graph::bfs (long int source) {
 	// printNeighbors();

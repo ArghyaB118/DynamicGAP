@@ -7,7 +7,7 @@
 #include <utility>
 #include <time.h>
 #include <sys/time.h>
-#include "cpp-btree-1.0.1/btree_set.h"
+#include "../cpp-btree-1.0.1/btree_set.h"
 using namespace std;
 
 typedef pair<long int, long int> edge;

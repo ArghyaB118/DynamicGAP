@@ -5,55 +5,12 @@
 #include <utility>
 #include <cstdlib>
 
-#define NODEWISE 1
-#define TLX 1
-#ifdef NODEWISE
-	#ifdef ABSL
-	#include "graph-absl.h"
-	// #elifdef TLX // (needs g++ 23)
-	#elif defined(TLX)
-	#include "graph-tlx.h"
-	#else
-	#include "graph.h"
-	#endif
-#else
-	#ifdef TLX
-	#include "graph-single-tlx-btree.h"
-	#else
-	#include "graph-single-btree.h"
-	#endif
-#endif
-
+#include "caching-graph-tlx.h"
 #include "sanity-check.h"
 
 using namespace std;
 
-bool verify = false;
-
-void readEdges (ifstream& myfile,
-	vector<edge>& edge_list,
-	long int num_lines) {
-	string myline;
-	if (myfile.is_open()) {	
-		while (myfile && num_lines > 0) {
-			getline(myfile, myline);
-			vector<string> tmp; 
-			tmp.push_back("");
-			for (char &c : myline) {
-				if (c != ' ')
-					tmp.back().push_back(c);
-				else
-					tmp.push_back("");
-			}
-			if (tmp[0] != "" && tmp[1] != "") {
-				edge tmp_edge = {stol(tmp[0]), stol(tmp[1])};
-				edge_list.push_back(tmp_edge);
-			}
-			myline.clear();
-			num_lines--;
-		}
-	}
-}
+bool verify = true;
 
 void readEdgesBulkLoad (ifstream& myfile,
 	vector<edge>& edge_list,
@@ -83,24 +40,6 @@ void readEdgesBulkLoad (ifstream& myfile,
 	}
 }
 
-
-void updateEdges (vector<edge>& edge_list, 
-	Graph& g,
-	long int start_line,
-	long int num_lines) {
-	double timer_start = 0, timer_end = 0;
-	double update_time = 0;
-	#pragma omp for
-	for (auto i = 0; i < num_lines; i++) {
-		timer_start = get_wall_time();
-		g.addEdge(edge_list[start_line + i]);
-		timer_end = get_wall_time();
-		update_time += (timer_end - timer_start);
-	}
-	cout << "Wall time to update edges: " << update_time << endl;
-	return;
-}
-
 void run_benchmark (long int source,
 	string filename, 
 	long int num_edges_init_round, 
@@ -117,29 +56,17 @@ void run_benchmark (long int source,
 	vector<edge> edge_list = {};
 	edge_list.reserve (num_edges_init_round 
 		+ num_edges_each_round * num_rounds);
-	// #if !defined(NODEWISE) && defined(TLX)
-	#ifdef TLX
 	vector<edge> parents_list = {};
-	edge_list.reserve (num_edges_init_round 
-		+ num_edges_each_round * num_rounds);
 	parents_list.reserve (num_edges_init_round 
 		+ num_edges_each_round * num_rounds);
 	readEdgesBulkLoad (myfile, edge_list, parents_list,
 		num_edges_init_round 
 	 	+ num_edges_each_round * num_rounds);
-	#else
-	readEdges (myfile, edge_list, num_edges_init_round 
-	 	+ num_edges_each_round * num_rounds);
-	#endif
-	Graph g(num_nodes);
+	
+	CachingGraph g(num_nodes);
 	vector<double> timestamps = {};
 	timestamps.push_back(get_wall_time());
-	// #if !defined(NODEWISE) && defined(TLX)
-	#ifdef TLX
 	g.buildGraph (edge_list, parents_list, 0, num_edges_init_round);
-	#else
-	updateEdges(edge_list, g, 0, num_edges_init_round);
-	#endif
 	timestamps.push_back(get_wall_time());
 	cout << "Wall time to read edges in the initial round: "
 	 << timestamps.back() - timestamps.end()[-2] << endl;
@@ -149,7 +76,7 @@ void run_benchmark (long int source,
 		cout << "Wall time for bfs after the initial round: "
 		 << timestamps.back() - timestamps.end()[-2] << endl;
 	}
-	pvector<long int> parent = g.bfs_gap(source); 
+	pvector<long int> parent = g.bfs_gap(source, num_edges_init_round); 
 	timestamps.push_back(get_wall_time());
 	cout << "Wall time for bfs_gap after the initial round: "
 	 << timestamps.back() - timestamps.end()[-2] << endl;
@@ -159,16 +86,20 @@ void run_benchmark (long int source,
 	}
 	for (long int i = 0; i < num_rounds; i++) {
 		timestamps.push_back(get_wall_time());
-		// #if !defined(NODEWISE) && defined(TLX)
-		#ifdef TLX
-		g.buildGraph (edge_list, parents_list, 
-			num_edges_init_round + i * num_edges_each_round,
-			num_edges_init_round + (i + 1) * num_edges_each_round);
-		#else
-		updateEdges(edge_list, g, 
-			num_edges_init_round + i * num_edges_each_round, 
-			num_edges_each_round);
-		#endif
+		// g.buildGraph (edge_list, parents_list, 
+		//	num_edges_init_round + i * num_edges_each_round,
+		//	num_edges_init_round + (i + 1) * num_edges_each_round);
+		if (g.affected[source]) {
+			g.cacheEdges (edge_list, parents_list, 
+				num_edges_init_round + i * num_edges_each_round, 
+				num_edges_init_round + (i + 1) * num_edges_each_round);
+			g.buildGraph (edge_list, parents_list, 0, 
+				num_edges_init_round + (i + 1) * num_edges_each_round);
+		}
+		else
+			g.cacheEdges (edge_list, parents_list, 
+				num_edges_init_round + i * num_edges_each_round, 
+				num_edges_init_round + (i + 1) * num_edges_each_round);
 		timestamps.push_back(get_wall_time());
 		cout << "Wall time to read edges in the " 
 		 << i + 1 << "-th round: "
@@ -180,7 +111,8 @@ void run_benchmark (long int source,
 			 << "-th round: "
 		 	 << timestamps.back() - timestamps.end()[-2] << endl;
 		}
-	 	parent = g.bfs_gap(source);
+	 	parent = g.bfs_gap(source, 
+	 		num_edges_init_round + (i + 1) * num_edges_each_round);
 	 	timestamps.push_back(get_wall_time());
 		cout << "Wall time for bfs_gap after " << i + 1
 		 << "-th round: "

@@ -5,30 +5,13 @@
 #include <utility>
 #include <cstdlib>
 
-#define NODEWISE 1
-#define TLX 1
-#ifdef NODEWISE
-	#ifdef ABSL
-	#include "graph-absl.h"
-	// #elifdef TLX // (needs g++ 23)
-	#elif defined(TLX)
-	#include "graph-tlx.h"
-	#else
-	#include "graph.h"
-	#endif
-#else
-	#ifdef TLX
-	#include "graph-single-tlx-btree.h"
-	#else
-	#include "graph-single-btree.h"
-	#endif
-#endif
+#include "graph-try.h"
 
 #include "sanity-check.h"
 
 using namespace std;
 
-bool verify = false;
+bool verify = true;
 
 void readEdges (ifstream& myfile,
 	vector<edge>& edge_list,
@@ -117,8 +100,7 @@ void run_benchmark (long int source,
 	vector<edge> edge_list = {};
 	edge_list.reserve (num_edges_init_round 
 		+ num_edges_each_round * num_rounds);
-	// #if !defined(NODEWISE) && defined(TLX)
-	#ifdef TLX
+	#if !defined(NODEWISE) && defined(TLX)
 	vector<edge> parents_list = {};
 	edge_list.reserve (num_edges_init_round 
 		+ num_edges_each_round * num_rounds);
@@ -134,8 +116,7 @@ void run_benchmark (long int source,
 	Graph g(num_nodes);
 	vector<double> timestamps = {};
 	timestamps.push_back(get_wall_time());
-	// #if !defined(NODEWISE) && defined(TLX)
-	#ifdef TLX
+	#if !defined(NODEWISE) && defined(TLX)
 	g.buildGraph (edge_list, parents_list, 0, num_edges_init_round);
 	#else
 	updateEdges(edge_list, g, 0, num_edges_init_round);
@@ -149,47 +130,10 @@ void run_benchmark (long int source,
 		cout << "Wall time for bfs after the initial round: "
 		 << timestamps.back() - timestamps.end()[-2] << endl;
 	}
-	pvector<long int> parent = g.bfs_gap(source); 
+	g.BFSStartFromScratch(source); 
 	timestamps.push_back(get_wall_time());
 	cout << "Wall time for bfs_gap after the initial round: "
 	 << timestamps.back() - timestamps.end()[-2] << endl;
-	if (verify) {
-		cout << "BFSVerifier output: " 
-		 << boolalpha << g.BFSVerifier(source, parent) << endl;
-	}
-	for (long int i = 0; i < num_rounds; i++) {
-		timestamps.push_back(get_wall_time());
-		// #if !defined(NODEWISE) && defined(TLX)
-		#ifdef TLX
-		g.buildGraph (edge_list, parents_list, 
-			num_edges_init_round + i * num_edges_each_round,
-			num_edges_init_round + (i + 1) * num_edges_each_round);
-		#else
-		updateEdges(edge_list, g, 
-			num_edges_init_round + i * num_edges_each_round, 
-			num_edges_each_round);
-		#endif
-		timestamps.push_back(get_wall_time());
-		cout << "Wall time to read edges in the " 
-		 << i + 1 << "-th round: "
-	 	 << timestamps.back() - timestamps.end()[-2] << endl;
-		if (verify) {
-			g.bfs(source);
-			timestamps.push_back(get_wall_time());
-			cout << "Wall time for bfs after " << i + 1
-			 << "-th round: "
-		 	 << timestamps.back() - timestamps.end()[-2] << endl;
-		}
-	 	parent = g.bfs_gap(source);
-	 	timestamps.push_back(get_wall_time());
-		cout << "Wall time for bfs_gap after " << i + 1
-		 << "-th round: "
-	 	 << timestamps.back() - timestamps.end()[-2] << endl;
-	 	if (verify) {
-		 	cout << "BFSVerifier output: " 
-		 	 << boolalpha << g.BFSVerifier(source, parent) << endl;
-	 	}
-	}
 	myfile.close();
 }
 
