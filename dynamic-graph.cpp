@@ -70,28 +70,41 @@ void run_benchmark (long int source,
 	timestamps.push_back(get_wall_time());
 	cout << "Wall time to read edges in the initial round: "
 	 << timestamps.back() - timestamps.end()[-2] << endl;
-	if (verify) {
-		g.bfsFromScratch (source);
-		timestamps.push_back(get_wall_time());
-		cout << "Wall time for bfs after the initial round: "
-		 << timestamps.back() - timestamps.end()[-2] << endl;
-	}
+	// g.bfsFromScratch (source);
+	pvector<long int> parent = g.bfs_gap (source);
+	timestamps.push_back(get_wall_time());
+	cout << "Wall time for bfs after the initial round: "
+	 << timestamps.back() - timestamps.end()[-2] << endl;
+	pvector<long int> parent3 = g.bfs_scratch (source);
+	for (int i = 0; i < parent.size(); i++) {
+ 		if (parent[i] != parent3[i])
+ 			cout << i << " " << parent[i] << " " << parent3[i] << endl; 
+ 	}
 	for (long int i = 0; i < num_rounds; i++) {
 		timestamps.push_back(get_wall_time());
-		g.buildGraph (edge_list, parents_list,
+		g.buildGraph (edge_list, parents_list, 0, 
+			num_edges_init_round + (i + 1) * num_edges_each_round);
+		g.get_potential_sources (edge_list,
 			num_edges_init_round + i * num_edges_each_round,
 			num_edges_init_round + (i + 1) * num_edges_each_round);
+		//g.mergeEdges (edge_list, parents_list, parent,
+		//	num_edges_init_round + i * num_edges_each_round,
+		//	num_edges_init_round + (i + 1) * num_edges_each_round);
 		timestamps.push_back(get_wall_time());
 		cout << "Wall time to read edges in the " 
 		 << i + 1 << "-th round: "
 	 	 << timestamps.back() - timestamps.end()[-2] << endl;
-		if (verify) {
-			g.bfsFromScratch (source);
-			timestamps.push_back(get_wall_time());
-			cout << "Wall time for bfs after " << i + 1
-			 << "-th round: "
-		 	 << timestamps.back() - timestamps.end()[-2] << endl;
-		}
+		g.bfs_gap_incremental3 (source, parent);
+		timestamps.push_back(get_wall_time());
+		cout << "Wall time for bfs after " << i + 1
+		 << "-th round: "
+	 	 << timestamps.back() - timestamps.end()[-2] << endl;
+	 	pvector<long int> parent2 = g.bfs_gap (source);
+	 	pvector<long int> parent4 = g.bfs_scratch (source);
+		for (int i = 0; i < parent.size(); i++) {
+	 		if (parent[i] != parent2[i] || parent[i] != parent4[i])
+	 			cout << i << " " << parent[i] << " " << parent2[i] << " " << parent4[i] << endl; 
+	 	}
 	}
 	myfile.close();
 }

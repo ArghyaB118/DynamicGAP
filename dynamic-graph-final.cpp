@@ -5,55 +5,12 @@
 #include <utility>
 #include <cstdlib>
 
-#define NODEWISE 1
-#define TLX 1
-#ifdef NODEWISE
-	#ifdef ABSL
-	#include "graph-absl.h"
-	// #elifdef TLX // (needs g++ 23)
-	#elif defined(TLX)
-	#include "graph-tlx.h"
-	#else
-	#include "graph.h"
-	#endif
-#else
-	#ifdef TLX
-	#include "graph-single-tlx-btree.h"
-	#else
-	#include "graph-single-btree.h"
-	#endif
-#endif
-
+#include "dynamic-graph/dynamic-graph-final.h"
 #include "sanity-check.h"
 
 using namespace std;
 
-bool verify = false;
-
-void readEdges (ifstream& myfile,
-	vector<edge>& edge_list,
-	long int num_lines) {
-	string myline;
-	if (myfile.is_open()) {	
-		while (myfile && num_lines > 0) {
-			getline(myfile, myline);
-			vector<string> tmp; 
-			tmp.push_back("");
-			for (char &c : myline) {
-				if (c != ' ')
-					tmp.back().push_back(c);
-				else
-					tmp.push_back("");
-			}
-			if (tmp[0] != "" && tmp[1] != "") {
-				edge tmp_edge = {stol(tmp[0]), stol(tmp[1])};
-				edge_list.push_back(tmp_edge);
-			}
-			myline.clear();
-			num_lines--;
-		}
-	}
-}
+bool verify = true;
 
 void readEdgesBulkLoad (ifstream& myfile,
 	vector<edge>& edge_list,
@@ -83,24 +40,6 @@ void readEdgesBulkLoad (ifstream& myfile,
 	}
 }
 
-
-void updateEdges (vector<edge>& edge_list, 
-	Graph& g,
-	long int start_line,
-	long int num_lines) {
-	double timer_start = 0, timer_end = 0;
-	double update_time = 0;
-	#pragma omp for
-	for (auto i = 0; i < num_lines; i++) {
-		timer_start = get_wall_time();
-		g.addEdge(edge_list[start_line + i]);
-		timer_end = get_wall_time();
-		update_time += (timer_end - timer_start);
-	}
-	cout << "Wall time to update edges: " << update_time << endl;
-	return;
-}
-
 void run_benchmark (long int source,
 	string filename, 
 	long int num_edges_init_round, 
@@ -117,82 +56,55 @@ void run_benchmark (long int source,
 	vector<edge> edge_list = {};
 	edge_list.reserve (num_edges_init_round 
 		+ num_edges_each_round * num_rounds);
-	// #if !defined(NODEWISE) && defined(TLX)
-	#ifdef TLX
 	vector<edge> parents_list = {};
-	edge_list.reserve (num_edges_init_round 
-		+ num_edges_each_round * num_rounds);
 	parents_list.reserve (num_edges_init_round 
 		+ num_edges_each_round * num_rounds);
 	readEdgesBulkLoad (myfile, edge_list, parents_list,
 		num_edges_init_round 
 	 	+ num_edges_each_round * num_rounds);
-	#else
-	readEdges (myfile, edge_list, num_edges_init_round 
-	 	+ num_edges_each_round * num_rounds);
-	#endif
-	Graph g(num_nodes);
+	
+	DynamicGraph g(num_nodes);
 	vector<double> timestamps = {};
 	timestamps.push_back(get_wall_time());
-	// #if !defined(NODEWISE) && defined(TLX)
-	#ifdef TLX
 	g.buildGraph (edge_list, parents_list, 0, num_edges_init_round);
-	#else
-	updateEdges(edge_list, g, 0, num_edges_init_round);
-	#endif
 	timestamps.push_back(get_wall_time());
 	cout << "Wall time to read edges in the initial round: "
 	 << timestamps.back() - timestamps.end()[-2] << endl;
-	if (verify) {
-		g.bfs(source);
-		timestamps.push_back(get_wall_time());
-		cout << "Wall time for bfs after the initial round: "
-		 << timestamps.back() - timestamps.end()[-2] << endl;
-	}
-	pvector<long int> parent = g.bfs_gap(source); 
+	pvector<long int> parent = g.bfs_gap (source);
 	timestamps.push_back(get_wall_time());
-	cout << "Wall time for bfs_gap after the initial round: "
+	cout << "Wall time for bfs after the initial round: "
 	 << timestamps.back() - timestamps.end()[-2] << endl;
-	if (verify) {
-		cout << "BFSVerifier output: " 
-		 << boolalpha << g.BFSVerifier(source, parent) << endl;
-	}
+	pvector<long int> parent_traditional_bfs = g.traditional_bfs (source);
+	cout << parent.size() << " " << parent_traditional_bfs.size() << endl;
+	/*for (int i = 0; i < parent.size(); i++) {
+ 		if (parent[i] != parent_traditional_bfs[i]) {
+ 			cout << i << " " << parent[i] 
+ 				<< " " << parent_traditional_bfs[i] << endl; 
+ 		}
+ 	}*/
 	for (long int i = 0; i < num_rounds; i++) {
 		timestamps.push_back(get_wall_time());
-		#if !defined(NODEWISE) && defined(TLX)
-		// #ifdef TLX
-		g.buildGraph (edge_list, parents_list, 
+		g.mergeEdges (edge_list, parents_list, parent,
 			num_edges_init_round + i * num_edges_each_round,
 			num_edges_init_round + (i + 1) * num_edges_each_round);
-		#elif defined(NODEWISE) && defined(TLX)
-		g.mergeEdges (edge_list, parents_list, 
-			num_edges_init_round + i * num_edges_each_round,
-			num_edges_init_round + (i + 1) * num_edges_each_round);
-		#else
-		updateEdges(edge_list, g, 
-			num_edges_init_round + i * num_edges_each_round, 
-			num_edges_each_round);
-		#endif
 		timestamps.push_back(get_wall_time());
 		cout << "Wall time to read edges in the " 
 		 << i + 1 << "-th round: "
 	 	 << timestamps.back() - timestamps.end()[-2] << endl;
-		if (verify) {
-			g.bfs(source);
-			timestamps.push_back(get_wall_time());
-			cout << "Wall time for bfs after " << i + 1
-			 << "-th round: "
-		 	 << timestamps.back() - timestamps.end()[-2] << endl;
-		}
-	 	parent = g.bfs_gap(source);
-	 	timestamps.push_back(get_wall_time());
-		cout << "Wall time for bfs_gap after " << i + 1
+		g.bfs_gap_incremental_use_depth (source, parent);
+		timestamps.push_back(get_wall_time());
+		cout << "Wall time for bfs after " << i + 1
 		 << "-th round: "
 	 	 << timestamps.back() - timestamps.end()[-2] << endl;
-	 	if (verify) {
-		 	cout << "BFSVerifier output: " 
-		 	 << boolalpha << g.BFSVerifier(source, parent) << endl;
-	 	}
+	 	/*pvector<long int> parent_gap_bfs = g.bfs_gap (source);
+	 	pvector<long int> parent_traditional_bfs = g.traditional_bfs (source);
+		for (int i = 0; i < parent.size(); i++) {
+	 		if (parent[i] != parent_gap_bfs[i] 
+	 			|| parent[i] != parent_traditional_bfs[i]) {
+	 			cout << i << " " << parent[i] << " " << parent_gap_bfs[i] 
+	 				<< " " << parent_traditional_bfs[i] << endl; 
+	 		}
+	 	}*/
 	}
 	myfile.close();
 }
