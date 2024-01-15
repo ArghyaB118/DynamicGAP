@@ -9,18 +9,18 @@
 #define TLX 1
 #ifdef NODEWISE
 	#ifdef ABSL
-	#include "graph-absl.h"
+	#include "static-graph/graph-absl.h"
 	// #elifdef TLX // (needs g++ 23)
 	#elif defined(TLX)
-	#include "graph-tlx.h"
+	#include "static-graph/graph-tlx.h"
 	#else
-	#include "graph.h"
+	#include "static-graph/graph.h"
 	#endif
 #else
 	#ifdef TLX
-	#include "graph-single-tlx-btree.h"
+	#include "static-graph/graph-single-tlx-btree.h"
 	#else
-	#include "graph-single-btree.h"
+	#include "static-graph/graph-single-btree.h"
 	#endif
 #endif
 

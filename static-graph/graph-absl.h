@@ -3,12 +3,12 @@
 #include <vector>
 #include <queue>
 
-#include "src-gap/pvector.h"
-#include "src-gap/sliding_queue.h"
-#include "src-gap/bitmap.h"
+#include "../src-gap/pvector.h"
+#include "../src-gap/sliding_queue.h"
+#include "../src-gap/bitmap.h"
 
-#include "util.h"
-#include "absl/container/btree_set.h"
+#include "../util.h"
+#include "../absl/container/btree_set.h"
 
 using namespace std;
 

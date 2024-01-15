@@ -5,7 +5,7 @@
 #include <utility>
 #include <cstdlib>
 
-#include "caching-graph-tlx.h"
+#include "static-graph/caching-graph-tlx.h"
 #include "sanity-check.h"
 
 using namespace std;
