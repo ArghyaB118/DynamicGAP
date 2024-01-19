@@ -34,6 +34,8 @@ Run on slashdot:
 1. Build: `g++ -std=c++11 -O3 -fopenmp gap-benchmark.cpp`.
 2. Run: `./a.out -deterministic 15462 graphs/slashdot.el 938360 0 0 >> tmp`.
 
+Bring graphs by running `./build_inputs.sh` in `/examples/graphs/inputs` from [CPAM github repo](https://github.com/ParAlg/CPAM). Copy in `DynamicGAP/graphs`. Also, some other large graphs can be downloaded from [Brian's repo](https://github.com/wheatman/Packed-Memory-Array/blob/for_artifact/graphs/download-graphs.sh) using the scriptr `graphs/download-graphs.sh`.
+
 ## Sanity check for GAP benchmark
 The runtime matches between Dynamic GAP benchmark and the native GAP benchmark. Note that, Dynamic GAP benchmark uses individual btrees to store the in- and out-neighbors, whereas GAP uses CSR representation of a graph.
 1. GAP's `src/` is clones in `src-gap/`.
